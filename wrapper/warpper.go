@@ -33,9 +33,6 @@ func (wrapper *AppWrapper) WrapperHandler(prefix string, c ControllerAbstract, m
 	name := toc.Elem().Name()
 	wrapper.reflectTypeData[name] = toc.Elem()
 
-	c.SetControllerName(name)
-	c.SetRouterWrapper(wrapper)
-	c.InitRouter(group)
-
+	c.InitGroupRouter(NewGroupRouter(group, wrapper, name))
 	return wrapper
 }

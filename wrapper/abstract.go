@@ -5,9 +5,8 @@ import (
 )
 
 type ControllerAbstract interface {
-	InitRouter(fiber.Router)
-	SetRouterWrapper(interface{})
-	SetControllerName(string)
+	SetCtx(*fiber.Ctx)
+	InitGroupRouter(*GroupRouter)
 
 	Init()
 }

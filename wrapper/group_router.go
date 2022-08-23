@@ -40,20 +40,24 @@ func (g *GroupRouter) GetMethodWrapHandler(methodSign string) fiber.Handler {
 
 	typeOf := g.wrapper.GetControllerType(ctrl)
 
-	return func(ctx *fiber.Ctx) error {
+	return func(ctx *fiber.Ctx) (err error) {
+		defer func() {
+			if recoverErr := recover(); recoverErr != nil {
+				err = recoverErr.(error)
+			}
+		}()
+
 		controller := reflect.New(typeOf)
 		c := controller.Interface().(ControllerAbstract)
 		c.SetCtx(ctx)
-
 		c.Init()
 
 		values := controller.MethodByName(method).Call(nil)
-
 		if result := values[0].Interface(); result != nil {
-			return ctx.JSON(fiber.Map{"status": fiber.StatusInternalServerError, "msg": result.(error).Error()})
+			err = ctx.JSON(fiber.Map{"status": fiber.StatusInternalServerError, "msg": result.(error).Error()})
 		}
 
-		return nil
+		return err
 	}
 }
 

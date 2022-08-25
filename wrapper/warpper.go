@@ -8,16 +8,16 @@ import (
 )
 
 type AppWrapper struct {
-	*fiber.App
+	fiber.Router
 
 	reflectTypeData map[string]reflect.Type
 }
 
-func New(app *fiber.App) *AppWrapper {
+func New(app fiber.Router) *AppWrapper {
 	return &AppWrapper{app, map[string]reflect.Type{}}
 }
 
-func (wrapper *AppWrapper) GetControllerType(name string) reflect.Type {
+func (wrapper *AppWrapper[T]) GetControllerType(name string) reflect.Type {
 	reflectType, exists := wrapper.reflectTypeData[name]
 
 	if !exists {

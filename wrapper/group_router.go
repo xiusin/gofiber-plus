@@ -1,19 +1,24 @@
 package wrapper
 
 import (
+	"errors"
 	"github.com/gofiber/fiber/v2"
+	"log"
+	"os"
 	"reflect"
+	"runtime/debug"
 	"strings"
 )
 
 type GroupRouter struct {
 	NativeRouter fiber.Router
 	wrapper      *AppWrapper
+	Logger       LoggerAbstract
 	CtrlName     string
 }
 
 func NewGroupRouter(router fiber.Router, wrapper *AppWrapper, Name string) *GroupRouter {
-	return &GroupRouter{NativeRouter: router, CtrlName: Name, wrapper: wrapper}
+	return &GroupRouter{NativeRouter: router, CtrlName: Name, wrapper: wrapper, Logger: log.New(os.Stdout, "[ERR]", log.LstdFlags)}
 }
 
 func (g *GroupRouter) parseController(method string) (string, string) {
@@ -44,6 +49,7 @@ func (g *GroupRouter) GetMethodWrapHandler(methodSign string) fiber.Handler {
 		defer func() {
 			if recoverErr := recover(); recoverErr != nil {
 				err = recoverErr.(error)
+				g.Logger.Print(string(debug.Stack()))
 			}
 		}()
 
@@ -53,8 +59,16 @@ func (g *GroupRouter) GetMethodWrapHandler(methodSign string) fiber.Handler {
 		c.Init()
 
 		values := controller.MethodByName(method).Call(nil)
+
+		if len(values) != 1 {
+			panic(errors.New("请确定Handler有且只有一个返回值"))
+		}
+
 		if result := values[0].Interface(); result != nil {
-			err = ctx.JSON(fiber.Map{"status": fiber.StatusInternalServerError, "msg": result.(error).Error()})
+			err = ctx.JSON(fiber.Map{
+				"status": fiber.StatusInternalServerError,
+				"msg":    result.(error).Error(),
+			})
 		}
 
 		return err

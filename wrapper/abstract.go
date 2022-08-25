@@ -10,3 +10,7 @@ type ControllerAbstract interface {
 
 	Init()
 }
+
+type LoggerAbstract interface {
+	Print(v ...any)
+}

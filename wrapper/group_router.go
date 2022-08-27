@@ -2,12 +2,13 @@ package wrapper
 
 import (
 	"errors"
-	"github.com/gofiber/fiber/v2"
 	"log"
 	"os"
 	"reflect"
 	"runtime/debug"
 	"strings"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type GroupRouter struct {
@@ -16,6 +17,8 @@ type GroupRouter struct {
 	Logger       LoggerAbstract
 	CtrlName     string
 }
+
+var ControllerSuffix = "Controller"
 
 func NewGroupRouter(router fiber.Router, wrapper *AppWrapper, Name string) *GroupRouter {
 	return &GroupRouter{NativeRouter: router, CtrlName: Name, wrapper: wrapper, Logger: log.New(os.Stdout, "[ERR]", log.LstdFlags)}
@@ -30,8 +33,8 @@ func (g *GroupRouter) parseController(method string) (string, string) {
 	}
 	if len(methods) == 2 {
 		name = methods[0]
-		if !strings.HasSuffix(name, "Controller") {
-			name += "Controller"
+		if !strings.HasSuffix(name, ControllerSuffix) {
+			name += ControllerSuffix
 		}
 	} else {
 		panic(ErrFormat)
@@ -42,7 +45,6 @@ func (g *GroupRouter) parseController(method string) (string, string) {
 
 func (g *GroupRouter) GetMethodWrapHandler(methodSign string) fiber.Handler {
 	ctrl, method := g.parseController(methodSign)
-
 	typeOf := g.wrapper.GetControllerType(ctrl)
 
 	return func(ctx *fiber.Ctx) (err error) {
@@ -59,16 +61,20 @@ func (g *GroupRouter) GetMethodWrapHandler(methodSign string) fiber.Handler {
 		c.Init()
 
 		values := controller.MethodByName(method).Call(nil)
+		length := len(values)
 
-		if len(values) != 1 {
-			panic(errors.New("请确定Handler有且只有一个返回值"))
-		}
-
-		if result := values[0].Interface(); result != nil {
-			err = ctx.JSON(fiber.Map{
-				"status": fiber.StatusInternalServerError,
-				"msg":    result.(error).Error(),
-			})
+		if length > 1 {
+			panic(errors.New("请确定Handler最多只有一个返回值"))
+		} else if length == 1 {
+			if result := values[0].Interface(); result != nil {
+				switch result := result.(type) {
+				case error:
+					err = ctx.JSON(fiber.Map{
+						"status": fiber.StatusInternalServerError,
+						"msg":    result.Error(),
+					})
+				}
+			}
 		}
 
 		return err

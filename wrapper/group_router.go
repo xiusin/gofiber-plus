@@ -2,12 +2,13 @@ package wrapper
 
 import (
 	"errors"
-	"github.com/gofiber/fiber/v2"
 	"log"
 	"os"
 	"reflect"
 	"runtime/debug"
 	"strings"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type GroupRouter struct {
@@ -49,8 +50,17 @@ func (g *GroupRouter) GetMethodWrapHandler(methodSign string) fiber.Handler {
 		defer func() {
 			if recoverErr := recover(); recoverErr != nil {
 				err = recoverErr.(error)
+
+				ctx.JSON(fiber.Map{
+					"status": fiber.StatusInternalServerError,
+					"msg":    err,
+				})
+
+				err = nil
+
 				g.Logger.Print(string(debug.Stack()))
 			}
+
 		}()
 
 		controller := reflect.New(typeOf)
@@ -67,7 +77,7 @@ func (g *GroupRouter) GetMethodWrapHandler(methodSign string) fiber.Handler {
 		if result := values[0].Interface(); result != nil {
 			err = ctx.JSON(fiber.Map{
 				"status": fiber.StatusInternalServerError,
-				"msg":    result.(error).Error(),
+				"msg":    err,
 			})
 		}
 

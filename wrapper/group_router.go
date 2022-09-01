@@ -6,7 +6,6 @@ import (
 	"os"
 	"reflect"
 	"runtime/debug"
-	"strings"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -22,29 +21,8 @@ func NewGroupRouter(router fiber.Router, wrapper *AppWrapper, Name string) *Grou
 	return &GroupRouter{NativeRouter: router, CtrlName: Name, wrapper: wrapper, Logger: log.New(os.Stdout, "[ERR]", log.LstdFlags)}
 }
 
-func (g *GroupRouter) parseController(method string) (string, string) {
-	methods := strings.Split(method, "::")
-	var name string
-
-	if len(methods) == 1 {
-		methods = append([]string{g.CtrlName}, methods[0])
-	}
-	if len(methods) == 2 {
-		name = methods[0]
-		if !strings.HasSuffix(name, "Controller") {
-			name += "Controller"
-		}
-	} else {
-		panic(ErrFormat)
-	}
-
-	return name, methods[1]
-}
-
-func (g *GroupRouter) GetMethodWrapHandler(methodSign string) fiber.Handler {
-	ctrl, method := g.parseController(methodSign)
-
-	typeOf := g.wrapper.GetControllerType(ctrl)
+func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
+	typeOf := g.wrapper.GetControllerType(g.CtrlName)
 
 	return func(ctx *fiber.Ctx) (err error) {
 		defer func() {
@@ -53,6 +31,7 @@ func (g *GroupRouter) GetMethodWrapHandler(methodSign string) fiber.Handler {
 
 				err = ctx.JSON(fiber.Map{
 					"status": fiber.StatusInternalServerError,
+					"code":   fiber.StatusInternalServerError,
 					"msg":    err.Error(),
 				})
 
@@ -75,6 +54,7 @@ func (g *GroupRouter) GetMethodWrapHandler(methodSign string) fiber.Handler {
 		if result := values[0].Interface(); result != nil {
 			err = ctx.JSON(fiber.Map{
 				"status": fiber.StatusInternalServerError,
+				"code":   fiber.StatusInternalServerError,
 				"msg":    err,
 			})
 		}

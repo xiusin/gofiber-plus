@@ -26,18 +26,15 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 
 	return func(ctx *fiber.Ctx) (err error) {
 		defer func() {
-			if recoverErr := recover(); recoverErr != nil {
-				err = recoverErr.(error)
-
+			if data := recover(); data != nil {
 				err = ctx.JSON(fiber.Map{
 					"status": fiber.StatusInternalServerError,
 					"code":   fiber.StatusInternalServerError,
-					"msg":    err.Error(),
+					"msg":    data.(error).Error(),
 				})
 
 				g.Logger.Print(string(debug.Stack()))
 			}
-
 		}()
 
 		controller := reflect.New(typeOf)

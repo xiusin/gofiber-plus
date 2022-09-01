@@ -55,7 +55,7 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 			err = ctx.JSON(fiber.Map{
 				"status": fiber.StatusInternalServerError,
 				"code":   fiber.StatusInternalServerError,
-				"msg":    err,
+				"msg":    err.Error(),
 			})
 		}
 

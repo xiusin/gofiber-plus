@@ -51,12 +51,10 @@ func (g *GroupRouter) GetMethodWrapHandler(methodSign string) fiber.Handler {
 			if recoverErr := recover(); recoverErr != nil {
 				err = recoverErr.(error)
 
-				ctx.JSON(fiber.Map{
+				err = ctx.JSON(fiber.Map{
 					"status": fiber.StatusInternalServerError,
 					"msg":    err.Error(),
 				})
-
-				err = nil
 
 				g.Logger.Print(string(debug.Stack()))
 			}

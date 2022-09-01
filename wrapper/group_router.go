@@ -6,7 +6,6 @@ import (
 	"os"
 	"reflect"
 	"runtime/debug"
-	"strings"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -24,33 +23,18 @@ func NewGroupRouter(router fiber.Router, wrapper *AppWrapper, Name string) *Grou
 	return &GroupRouter{NativeRouter: router, CtrlName: Name, wrapper: wrapper, Logger: log.New(os.Stdout, "[ERR]", log.LstdFlags)}
 }
 
-func (g *GroupRouter) parseController(method string) (string, string) {
-	methods := strings.Split(method, "::")
-	var name string
-
-	if len(methods) == 1 {
-		methods = append([]string{g.CtrlName}, methods[0])
-	}
-	if len(methods) == 2 {
-		name = methods[0]
-		if !strings.HasSuffix(name, ControllerSuffix) {
-			name += ControllerSuffix
-		}
-	} else {
-		panic(ErrFormat)
-	}
-
-	return name, methods[1]
-}
-
-func (g *GroupRouter) GetMethodWrapHandler(methodSign string) fiber.Handler {
-	ctrl, method := g.parseController(methodSign)
-	typeOf := g.wrapper.GetControllerType(ctrl)
+func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
+	typeOf := g.wrapper.GetControllerType(g.CtrlName)
 
 	return func(ctx *fiber.Ctx) (err error) {
 		defer func() {
-			if recoverErr := recover(); recoverErr != nil {
-				err = recoverErr.(error)
+			if data := recover(); data != nil {
+				err = ctx.JSON(fiber.Map{
+					"status": fiber.StatusInternalServerError,
+					"code":   fiber.StatusInternalServerError,
+					"msg":    data.(error).Error(),
+				})
+
 				g.Logger.Print(string(debug.Stack()))
 			}
 		}()
@@ -61,20 +45,17 @@ func (g *GroupRouter) GetMethodWrapHandler(methodSign string) fiber.Handler {
 		c.Init()
 
 		values := controller.MethodByName(method).Call(nil)
-		length := len(values)
 
-		if length > 1 {
-			panic(errors.New("请确定Handler最多只有一个返回值"))
-		} else if length == 1 {
-			if result := values[0].Interface(); result != nil {
-				switch result := result.(type) {
-				case error:
-					err = ctx.JSON(fiber.Map{
-						"status": fiber.StatusInternalServerError,
-						"msg":    result.Error(),
-					})
-				}
-			}
+		if len(values) != 1 {
+			panic(errors.New("请确定Handler有且只有一个返回值"))
+		}
+
+		if result := values[0].Interface(); result != nil {
+			err = ctx.JSON(fiber.Map{
+				"status": fiber.StatusInternalServerError,
+				"code":   fiber.StatusInternalServerError,
+				"msg":    err.Error(),
+			})
 		}
 
 		return err

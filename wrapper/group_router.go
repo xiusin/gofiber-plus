@@ -17,8 +17,6 @@ type GroupRouter struct {
 	CtrlName     string
 }
 
-var ControllerSuffix = "Controller"
-
 func NewGroupRouter(router fiber.Router, wrapper *AppWrapper, Name string) *GroupRouter {
 	return &GroupRouter{NativeRouter: router, CtrlName: Name, wrapper: wrapper, Logger: log.New(os.Stdout, "[ERR]", log.LstdFlags)}
 }
@@ -54,7 +52,7 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 			err = ctx.JSON(fiber.Map{
 				"status": fiber.StatusInternalServerError,
 				"code":   fiber.StatusInternalServerError,
-				"msg":    err.Error(),
+				"msg":    result.(error).Error(),
 			})
 		}
 

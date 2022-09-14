@@ -2,12 +2,13 @@ package wrapper
 
 import (
 	"errors"
-	"github.com/gofiber/fiber/v2"
-	"github.com/xiusin/godi"
 	"log"
 	"os"
 	"reflect"
 	"runtime/debug"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/xiusin/godi"
 )
 
 type GroupRouter struct {
@@ -21,8 +22,8 @@ func NewGroupRouter(router fiber.Router, wrapper *AppWrapper, Name string) *Grou
 	return &GroupRouter{NativeRouter: router, CtrlName: Name, wrapper: wrapper, Logger: log.New(os.Stdout, "[ERR]", log.LstdFlags)}
 }
 
-// ErrHandler 错误处理函数
-var ErrHandler = func(ctx *fiber.Ctx, data any) error {
+// ErrResponseHandler 错误处理函数
+var ErrResponseHandler = func(ctx *fiber.Ctx, data any) error {
 	return ctx.JSON(fiber.Map{
 		"status": fiber.StatusInternalServerError,
 		"code":   fiber.StatusInternalServerError,
@@ -35,7 +36,7 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 	return func(ctx *fiber.Ctx) (err error) {
 		defer func() {
 			if data := recover(); data != nil {
-				err = ErrHandler(ctx, data)
+				err = ErrResponseHandler(ctx, data)
 				g.Logger.Print(data, string(debug.Stack()), "\n")
 			}
 		}()
@@ -76,14 +77,10 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 		}
 
 		if result := values[0].Interface(); result != nil {
-			err = ctx.JSON(fiber.Map{
-				"status": fiber.StatusInternalServerError,
-				"code":   fiber.StatusInternalServerError,
-				"msg":    result.(error).Error(),
-			})
+			return ErrResponseHandler(ctx, result)
 		}
 
-		return err
+		return nil
 	}
 }
 

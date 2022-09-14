@@ -1,10 +1,3 @@
-# gofiber-controller
-Enable fiber to support controller mode
-
-
-
-# demo
-```go
 package test
 
 import (
@@ -28,5 +21,3 @@ func Test_App(t *testing.T) {
 	routerWrapper := wrapper.New(app)
 	routerWrapper.WrapperHandler("/common", new(TestController))
 }
-
-```

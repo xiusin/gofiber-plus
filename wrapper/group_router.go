@@ -1,7 +1,9 @@
 package wrapper
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"reflect"
@@ -23,21 +25,32 @@ func NewGroupRouter(router fiber.Router, wrapper *AppWrapper, Name string) *Grou
 }
 
 // ErrResponseHandler 错误处理函数
-var ErrResponseHandler = func(ctx *fiber.Ctx, data any) error {
+var ErrResponseHandler = func(ctx *fiber.Ctx, data string) error {
 	return ctx.JSON(fiber.Map{
 		"status": fiber.StatusInternalServerError,
 		"code":   fiber.StatusInternalServerError,
-		"msg":    data.(error).Error(),
+		"msg":    data,
 	})
 }
+
+var beginStackSubBytes = []byte("src/runtime/panic.go:")
+var endStackSubBytes = []byte("github.com/gofiber/fiber/v2.(*App).next(")
 
 func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 	typeOf := g.wrapper.GetControllerType(g.CtrlName)
 	return func(ctx *fiber.Ctx) (err error) {
 		defer func() {
 			if data := recover(); data != nil {
-				err = ErrResponseHandler(ctx, data)
-				g.Logger.Print(data, string(debug.Stack()), "\n")
+				err = ErrResponseHandler(ctx, fmt.Sprintf("%s", data))
+
+				stack := debug.Stack()
+				beginIndex, endIndex := bytes.Index(stack, beginStackSubBytes), bytes.Index(stack, endStackSubBytes)
+				var msg = stack[beginIndex:endIndex]
+
+				g.Logger.Print("错误信息：", data,
+					"\n ============ 堆栈 ==============\n",
+					string(msg),
+					" ============= 结束 ==============\n")
 			}
 		}()
 
@@ -47,12 +60,10 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 
 		c := controller.Interface().(ControllerAbstract)
 
-		// 解析服务
-		fieldNum := typeOf.Elem().NumField()
+		fieldNum := typeOf.NumField()
 		for i := 0; i < fieldNum; i++ {
-			field := typeOf.Elem().Field(i)
-			valueOfField := valueOf.Elem().Field(i)
-
+			field := typeOf.Field(i)
+			valueOfField := valueOf.Field(i)
 			if !valueOfField.CanAddr() || !valueOfField.IsNil() {
 				continue
 			}
@@ -69,6 +80,7 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 		}
 
 		c.SetCtx(ctx)
+
 		c.Init()
 
 		values := controller.MethodByName(method).Call(nil)
@@ -77,7 +89,7 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 		}
 
 		if result := values[0].Interface(); result != nil {
-			return ErrResponseHandler(ctx, result)
+			return ErrResponseHandler(ctx, fmt.Sprintf("%s", result))
 		}
 
 		return nil

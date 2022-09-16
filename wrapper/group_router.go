@@ -47,9 +47,12 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 				beginIndex, endIndex := bytes.Index(stack, beginStackSubBytes), bytes.Index(stack, endStackSubBytes)
 				var msg = stack[beginIndex:endIndex]
 
+				stack = nil
+				beginIndex = bytes.Index(msg, []byte{'\n'})
+
 				g.Logger.Print("错误信息：", data,
 					"\n ============ 堆栈 ==============\n",
-					string(msg),
+					string(msg[beginIndex+1:]),
 					" ============= 结束 ==============\n")
 			}
 		}()

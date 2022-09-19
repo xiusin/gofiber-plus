@@ -2,7 +2,6 @@ package wrapper
 
 import (
 	"fmt"
-	"github.com/fatih/color"
 	"reflect"
 
 	"github.com/gofiber/fiber/v2"
@@ -33,9 +32,6 @@ func (wrapper *AppWrapper) WrapperHandler(prefix string, c ControllerAbstract, m
 	toc := reflect.TypeOf(c)
 	name := toc.Elem().Name()
 	wrapper.reflectTypeData[name] = toc.Elem()
-
-	fmt.Printf("%s/*%40s\n", color.CyanString(prefix), color.RedString("Controller:")+name)
-
 	c.InitGroupRouter(NewGroupRouter(group, wrapper, name))
 	return wrapper
 }

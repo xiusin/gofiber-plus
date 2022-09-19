@@ -86,15 +86,11 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 
 		c.Init()
 
-		values := controller.MethodByName(method).Call(nil)
-		if len(values) != 1 {
+		if values := controller.MethodByName(method).Call(nil); len(values) != 1 {
 			panic(errors.New("请确定Handler有且只有一个返回值"))
-		}
-
-		if result := values[0].Interface(); result != nil {
+		} else if result := values[0].Interface(); result != nil {
 			return ErrResponseHandler(ctx, fmt.Sprintf("%s", result))
 		}
-
 		return nil
 	}
 }

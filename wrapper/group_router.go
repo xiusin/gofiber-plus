@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
-	"os"
 	"reflect"
 	"runtime/debug"
 
@@ -16,12 +14,11 @@ import (
 type GroupRouter struct {
 	NativeRouter fiber.Router
 	wrapper      *AppWrapper
-	Logger       LoggerAbstract
 	CtrlName     string
 }
 
 func NewGroupRouter(router fiber.Router, wrapper *AppWrapper, Name string) *GroupRouter {
-	return &GroupRouter{NativeRouter: router, CtrlName: Name, wrapper: wrapper, Logger: log.New(os.Stdout, "[ERR]", log.LstdFlags)}
+	return &GroupRouter{NativeRouter: router, CtrlName: Name, wrapper: wrapper}
 }
 
 // ErrResponseHandler 错误处理函数
@@ -50,7 +47,7 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 				stack = nil
 				beginIndex = bytes.Index(msg, []byte{'\n'})
 
-				g.Logger.Print("错误信息：", data,
+				g.wrapper.Logger.Print("错误信息：", data,
 					"\n ============ 堆栈 ==============\n",
 					string(msg[beginIndex+1:]),
 					" ============= 结束 ==============\n")
@@ -74,7 +71,7 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 				func() {
 					defer func() {
 						if err := recover(); err != nil {
-							g.Logger.Print("reflect failed", err)
+							g.wrapper.Logger.Print("reflect failed", err)
 						}
 					}()
 					valueOfField.Set(reflect.ValueOf(godi.MustGet(serviceName)))

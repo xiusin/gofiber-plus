@@ -2,6 +2,8 @@ package wrapper
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"reflect"
 
 	"github.com/gofiber/fiber/v2"
@@ -9,12 +11,12 @@ import (
 
 type AppWrapper struct {
 	fiber.Router
-
 	reflectTypeData map[string]reflect.Type
+	Logger          LoggerAbstract
 }
 
 func New(app fiber.Router) *AppWrapper {
-	return &AppWrapper{app, map[string]reflect.Type{}}
+	return &AppWrapper{app, map[string]reflect.Type{}, log.New(os.Stdout, "[ERR]", log.LstdFlags)}
 }
 
 func (wrapper *AppWrapper) GetControllerType(name string) reflect.Type {

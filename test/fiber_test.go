@@ -1,13 +1,16 @@
 package test
 
 import (
+	"testing"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/xiusin/gofiber-controller/wrapper"
-	"testing"
 )
 
 type TestController struct {
 	wrapper.Controller
+
+	dataType string
 }
 
 func (*TestController) InitGroupRouter(w *wrapper.GroupRouter) {

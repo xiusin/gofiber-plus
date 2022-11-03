@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"reflect"
-	"runtime/debug"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/xiusin/godi"
+	"reflect"
+	"runtime/debug"
 )
 
 type GroupRouter struct {
@@ -63,6 +62,11 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 		fieldNum := typeOf.NumField()
 		for i := 0; i < fieldNum; i++ {
 			field := typeOf.Field(i)
+
+			if !field.IsExported() {
+				continue
+			}
+
 			valueOfField := valueOf.Field(i)
 			if !valueOfField.CanAddr() || !valueOfField.IsNil() {
 				continue

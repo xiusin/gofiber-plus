@@ -2,23 +2,13 @@ package wrapper
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"github.com/xiusin/godi"
 	"reflect"
 	"runtime/debug"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/xiusin/godi"
 )
-
-type GroupRouter struct {
-	NativeRouter fiber.Router
-	wrapper      *AppWrapper
-	CtrlName     string
-}
-
-func NewGroupRouter(router fiber.Router, wrapper *AppWrapper, Name string) *GroupRouter {
-	return &GroupRouter{NativeRouter: router, CtrlName: Name, wrapper: wrapper}
-}
 
 // ErrResponseHandler 错误处理函数
 var ErrResponseHandler = func(ctx *fiber.Ctx, data string) error {
@@ -31,6 +21,17 @@ var ErrResponseHandler = func(ctx *fiber.Ctx, data string) error {
 
 var beginStackSubBytes = []byte("src/runtime/panic.go:")
 var endStackSubBytes = []byte("github.com/gofiber/fiber/v2.(*App).next(")
+var InjectFailedFormat = "Injection service is causing an exception in the '%s' field. Reason: %s"
+
+type GroupRouter struct {
+	NativeRouter fiber.Router
+	wrapper      *AppWrapper
+	CtrlName     string
+}
+
+func NewGroupRouter(router fiber.Router, wrapper *AppWrapper, Name string) *GroupRouter {
+	return &GroupRouter{NativeRouter: router, CtrlName: Name, wrapper: wrapper}
+}
 
 func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 	typeOf := g.wrapper.GetControllerType(g.CtrlName)
@@ -46,49 +47,44 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 				stack = nil
 				beginIndex = bytes.Index(msg, []byte{'\n'})
 
-				g.wrapper.Logger.Print("错误信息：", data,
-					"\n ============ 堆栈 ==============\n",
+				g.wrapper.Logger.Print("Error message：", data,
+					"\n ============ Stack ==============\n",
 					string(msg[beginIndex+1:]),
-					" ============= 结束 ==============\n")
+					" =============  End  ==============\n")
 			}
 		}()
 
 		controller := reflect.New(typeOf)
-
-		valueOf := reflect.ValueOf(controller)
-
 		c := controller.Interface().(ControllerAbstract)
 
-		fieldNum := typeOf.NumField()
-		for i := 0; i < fieldNum; i++ {
+		num := typeOf.NumField()
+		for i := 0; i < num; i++ {
 			field := typeOf.Field(i)
-
-			if !field.IsExported() {
-				continue
-			}
-
-			valueOfField := valueOf.Field(i)
-			if !valueOfField.CanAddr() || !valueOfField.IsNil() {
-				continue
-			}
-			if serviceName := field.Tag.Get("di"); len(serviceName) > 0 && godi.Exists(serviceName) {
-				func() {
-					defer func() {
-						if err := recover(); err != nil {
-							g.wrapper.Logger.Print("reflect failed", err)
-						}
+			name := field.Tag.Get("inject")
+			if field.IsExported() && len(name) > 0 && godi.Exists(name) {
+				valueOfField := controller.Elem().FieldByName(field.Name)
+				if valueOfField.CanAddr() && valueOfField.IsNil() {
+					func() {
+						defer func() {
+							if err := recover(); err != nil {
+								g.wrapper.Logger.Print(fmt.Sprintf(InjectFailedFormat, field.Name, err))
+							}
+						}()
+						valueOfField.Set(reflect.ValueOf(godi.MustGet(name)))
 					}()
-					valueOfField.Set(reflect.ValueOf(godi.MustGet(serviceName)))
-				}()
+				}
 			}
 		}
 
 		c.SetCtx(ctx)
-
 		c.Init()
 
-		if values := controller.MethodByName(method).Call(nil); len(values) != 1 {
-			panic(errors.New("请确定Handler有且只有一个返回值"))
+		methodRef := controller.MethodByName(method)
+		if !methodRef.IsValid() {
+			return ErrResponseHandler(ctx, `Method '`+method+`' does not exist.`)
+		}
+		if values := methodRef.Call(nil); len(values) != 1 {
+			return ErrResponseHandler(ctx, `Please make sure that the handler has only one return value.`)
 		} else if result := values[0].Interface(); result != nil {
 			return ErrResponseHandler(ctx, fmt.Sprintf("%s", result))
 		}

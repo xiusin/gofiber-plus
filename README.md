@@ -1,4 +1,4 @@
-# gofiber-controller
+# gofiber-plus
 Enable fiber to support controller mode
 
 
@@ -9,7 +9,7 @@ package test
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/xiusin/gofiber-controller/wrapper"
+	"github.com/xiusin/gofiber-plus/wrapper"
 	"testing"
 )
 

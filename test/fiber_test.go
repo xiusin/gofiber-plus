@@ -6,7 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/xiusin/godi"
-	"github.com/xiusin/gofiber-controller/wrapper"
+	"github.com/xiusin/gofiber-plus/wrapper"
 )
 
 type TestController struct {

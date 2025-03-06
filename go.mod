@@ -1,6 +1,6 @@
-module github.com/xiusin/gofiber-controller
+module github.com/xiusin/gofiber-plus
 
-go 1.18
+go 1.20
 
 require (
 	github.com/gofiber/fiber/v2 v2.36.0

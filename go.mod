@@ -3,7 +3,7 @@ module github.com/xiusin/gofiber-plus
 go 1.20
 
 require (
-	github.com/gofiber/fiber/v2 v2.36.0
+	github.com/gofiber/fiber/v3 v3.0.0-beta.4
 	github.com/xiusin/godi v0.0.1
 )
 

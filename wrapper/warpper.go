@@ -6,7 +6,7 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 )
 
 type AppWrapper struct {

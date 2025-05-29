@@ -2,7 +2,7 @@ package wrapper
 
 import (
 	"errors"
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 )
 
 var ErrNeedImplements = errors.New(`please implement this method within the sub-structure`)

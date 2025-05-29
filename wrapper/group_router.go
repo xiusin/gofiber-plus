@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"runtime/debug"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/xiusin/godi"
 )
 
@@ -61,17 +61,31 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 		for i := 0; i < num; i++ {
 			field := typeOf.Field(i)
 			name := field.Tag.Get("inject")
-			if field.IsExported() && len(name) > 0 && godi.Exists(name) {
-				valueOfField := controller.Elem().FieldByName(field.Name)
-				if valueOfField.CanAddr() && valueOfField.IsNil() {
-					func() {
-						defer func() {
-							if err := recover(); err != nil {
-								g.wrapper.Logger.Print(fmt.Sprintf(InjectFailedFormat, field.Name, err))
-							}
+			
+			valueOfField := controller.Elem().FieldByName(field.Name)
+			if field.IsExported() {
+				if len(name) > 0 && godi.Exists(name) {
+					if valueOfField.CanAddr() && valueOfField.IsNil() {
+						func() {
+							defer func() {
+								if err := recover(); err != nil {
+									g.wrapper.Logger.Print(fmt.Sprintf(InjectFailedFormat, field.Name, err))
+								}
+							}()
+							valueOfField.Set(reflect.ValueOf(godi.MustGet(name)))
 						}()
-						valueOfField.Set(reflect.ValueOf(godi.MustGet(name)))
-					}()
+					}
+				} else {
+					if valueOfField.CanAddr() && valueOfField.IsNil() {
+						func() {
+							defer func() {
+								if err := recover(); err != nil {
+									g.wrapper.Logger.Print(fmt.Sprintf(InjectFailedFormat, field.Name, err))
+								}
+							}()
+							godi.injectOn(valueOfField.Interface())
+						}()
+					}
 				}
 			}
 		}

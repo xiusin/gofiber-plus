@@ -83,7 +83,7 @@ func (g *GroupRouter) GetMethodWrapHandler(method string) fiber.Handler {
 									g.wrapper.Logger.Print(fmt.Sprintf(InjectFailedFormat, field.Name, err))
 								}
 							}()
-							godi.injectOn(valueOfField.Interface())
+							godi.InjectOn(valueOfField.Interface())
 						}()
 					}
 				}
